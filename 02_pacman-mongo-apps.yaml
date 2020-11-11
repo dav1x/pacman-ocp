@@ -1,0 +1,69 @@
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: mongodb
+  namespace: pacman
+  annotations:
+  labels:
+    app: pacman
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 30Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  namespace: pacman
+  labels:
+    app: pacman
+  name: mongodb 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pacman
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: pacman
+    spec:
+      serviceAccount: pacman
+      serviceAccountName: pacman
+      volumes:
+      - name: mongodb-data
+        persistentVolumeClaim:
+          claimName: mongodb
+      containers:
+      - name: mongodb-pacman
+        image: centos/mongodb-36-centos7
+        env:
+        - name: MONGODB_ADMIN_PASSWORD
+          value: clyde
+        - name: MONGODB_DATABASE
+          value: pacman
+        - name: MONGODB_PASSWORD
+          value: pinky
+        - name: MONGODB_USER
+          value: blinky
+        ports:
+        - containerPort: 27017
+          protocol: TCP
+        readinessProbe:
+          exec:
+           command:
+            - /bin/sh
+            - -i
+            - -c
+            - mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD
+              --eval="quit()"
+        volumeMounts:
+        - mountPath: /var/lib/mongodb/data
+          name: mongodb-data
+        resources: {}
+status: {}
